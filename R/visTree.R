@@ -117,6 +117,79 @@
 #' @importFrom grDevices colorRamp
 #' @importFrom grDevices rgb
 #' 
+
+myLog2 <- function(x) {
+  result <- log2(x)
+  result[is.infinite(result)] <- 0
+  result
+}
+
+entropyProbs <- function(probs) {
+  - probs %*% myLog2(probs)
+}
+
+avgEntropyProbs <- function(nodeN,kidsProbs,kidsNs) {
+  result <- 0
+  for(i in 1:nrow(kidsProbs)) {
+    result <- result + entropy(kidsProbs[i,]) * kidsNs[i] / nodeN
+  }
+  result
+}
+
+IGProbs <- function(nodeProbs,nodeN,kidsProbs,kidsNs) {
+  entropyProbs(nodeProbs) - avgEntropyProbs(nodeN,kidsProbs,kidsNs)
+}
+
+getParentsChildren <- function(preorder) {
+  parentsChildren <- matrix(ncol=3,nrow=sum(preorder != "<leaf>"))
+  index <<- 1
+  getTreeFromPreorder <- function(pos,preorder) {
+    node <- list()
+    node$index <- pos
+    if(preorder[pos] != "<leaf>") {
+      result <- getTreeFromPreorder(pos+1,preorder)
+      node$left <- result$node
+      
+      result <- getTreeFromPreorder(result$pos+1,preorder)
+      node$right <- result$node
+      
+      parentsChildren[index,] <<- c(pos,node$left$index,node$right$index)
+      index <<- index + 1
+      
+      return(list(pos = result$pos, node = node))
+    }
+    return(list(pos = pos, node = node))
+  }
+  getTreeFromPreorder(1,preorder)
+  parentsChildren
+}
+
+getIGs <- function(object) {
+  nodesN <- object$frame$n
+  preorder <- as.character(object$frame[,1])
+  parentsChildren <- getParentsChildren(preorder)
+  
+  infoClass <- attributes(object)$ylevels
+  nlevelsClass <- length(infoClass)
+  probaClass <- object$frame[,"yval2"]
+  effectif <- data.frame(probaClass[,2:(nlevelsClass+1), drop = F])
+  probs <- as.matrix(data.frame(probaClass[,(nlevelsClass+2):(ncol(probaClass)-1), drop = F]))
+  
+  IGs <- rep("-",length(nodesN))
+  
+  for(i in 1:nrow(parentsChildren)) {
+    index <- parentsChildren[i,1]
+    indexLeft <- parentsChildren[i,2]
+    indexRight <- parentsChildren[i,3]
+    IGs[index] <- round(IGProbs(probs[index,],
+                          nodesN[index],
+                          probs[c(indexLeft,indexRight),],
+                          nodesN[c(indexLeft,indexRight)]),
+                        digits = 6)
+  }
+  IGs
+}
+
 visTree <- function(object,
                     data = NULL,
                     tooltipColumns = if(!is.null(data)){1:ncol(data)} else {NULL},
@@ -484,7 +557,7 @@ $.sparkline_display_visible();
     '<div style="text-align:center;">', "N : <b>",
     round(object$frame$n/object$frame$n[1],digits)*100, 
     "%</b> (", object$frame$n,")<br>", "IG : <b>",
-    nrow(object$frame),
+    getIGs(object),
     "</b><br>", statsNodes,
     ifelse(!unlist(lapply(tooltipRules, is.null)), finalHtmlRules, ""), '</div>',
     labelComplete)
