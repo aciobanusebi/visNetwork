@@ -483,8 +483,8 @@ $.sparkline_display_visible();
   finalNodesTooltip <- paste0(
     '<div style="text-align:center;">', "N : <b>",
     round(object$frame$n/object$frame$n[1],digits)*100, 
-    "%</b> (", object$frame$n,")<br>", "Complexity : <b>",
-    round(object$frame$complexity, digits),
+    "%</b> (", object$frame$n,")<br>", "IG : <b>",
+    nrow(object$frame),
     "</b><br>", statsNodes,
     ifelse(!unlist(lapply(tooltipRules, is.null)), finalHtmlRules, ""), '</div>',
     labelComplete)
