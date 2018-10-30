@@ -124,20 +124,24 @@ myLog2 <- function(x) {
   result
 }
 
-entropyProbs <- function(probs) {
+entropy <- function(counts) {
+  if(sum(counts) == 0) {
+    return(0)
+  }
+  probs <- counts/sum(counts)
   - probs %*% myLog2(probs)
 }
 
-avgEntropyProbs <- function(nodeN,kidsProbs,kidsNs) {
+avgEntropy <- function(nodeCounts,kidsCounts) {
   result <- 0
-  for(i in 1:nrow(kidsProbs)) {
-    result <- result + entropy(kidsProbs[i,]) * kidsNs[i] / nodeN
+  for(i in 1:nrow(kidsCounts)) {
+    result <- result + entropy(kidsCounts[i,]) * sum(kidsCounts[i,]) / sum(nodeCounts)
   }
   result
 }
 
-IGProbs <- function(nodeProbs,nodeN,kidsProbs,kidsNs) {
-  entropyProbs(nodeProbs) - avgEntropyProbs(nodeN,kidsProbs,kidsNs)
+IG <- function(nodeCounts,kidsCounts) {
+  entropy(nodeCounts) - avgEntropy(nodeCounts,kidsCounts)
 }
 
 getParentsChildren <- function(preorder) {
@@ -173,22 +177,18 @@ getIGs <- function(object) {
   nlevelsClass <- length(infoClass)
   probaClass <- object$frame[,"yval2"]
   effectif <- data.frame(probaClass[,2:(nlevelsClass+1), drop = F])
-  probs <- as.matrix(data.frame(probaClass[,(nlevelsClass+2):(ncol(probaClass)-1), drop = F]))
-  
+
   IGs <- rep("-",length(nodesN))
   
   if(nrow(parentsChildren) == 0) {
     return(IGs)
   }
-  
   for(i in 1:nrow(parentsChildren)) {
     index <- parentsChildren[i,1]
     indexLeft <- parentsChildren[i,2]
     indexRight <- parentsChildren[i,3]
-    IGs[index] <- round(IGProbs(probs[index,],
-                          nodesN[index],
-                          probs[c(indexLeft,indexRight),],
-                          nodesN[c(indexLeft,indexRight)]),
+    IGs[index] <- round(IG(effectif[index,],
+                                effectif[c(indexLeft,indexRight),]),
                         digits = 6)
   }
   IGs
