@@ -176,7 +176,7 @@ getIGs <- function(object) {
   infoClass <- attributes(object)$ylevels
   nlevelsClass <- length(infoClass)
   probaClass <- object$frame[,"yval2"]
-  effectif <- data.frame(probaClass[,2:(nlevelsClass+1), drop = F])
+  effectif <- as.matrix(data.frame(probaClass[,2:(nlevelsClass+1), drop = F]))
 
   IGs <- rep("-",length(nodesN))
   
