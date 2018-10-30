@@ -177,6 +177,10 @@ getIGs <- function(object) {
   
   IGs <- rep("-",length(nodesN))
   
+  if(nrow(parentsChildren) == 0) {
+    return(IGs)
+  }
+  
   for(i in 1:nrow(parentsChildren)) {
     index <- parentsChildren[i,1]
     indexLeft <- parentsChildren[i,2]
